@@ -7,10 +7,13 @@
 """
 import subprocess
 import sys
+import time
 import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "tools"))
+from serial_helper import serial_interrupt
 
 
 def load_config():
@@ -22,8 +25,8 @@ def mpremote_exec(port: str, command: str, timeout: int = 10) -> bool:
     """执行 mpremote resume exec 命令"""
     try:
         r = subprocess.run(
-            [sys.executable, "-m", "mpremote", "resume",
-             "exec", command],
+            [sys.executable, "-m", "mpremote", "connect", f"port:{port}",
+             "resume", "exec", command],
             capture_output=True, text=True, timeout=timeout,
         )
         return r.returncode == 0
@@ -43,18 +46,58 @@ def run_file(cfg, filepath: str):
         sys.exit(1)
 
     # 清空 boot.py（开发模式安全锁）
-    if mpremote_exec(port, "with open('boot.py','w') as f: f.write('')"):
+    clear_cmd = "with open('boot.py','w') as f: f.write('')"
+    if mpremote_exec(port, clear_cmd):
         print("[OK] boot.py 已清空（开发模式安全锁）")
     else:
-        print("[WARN] 清空 boot.py 失败，板子可能未连接")
+        serial_interrupt(port)
+        if mpremote_exec(port, clear_cmd):
+            print("[OK] boot.py 已清空（串口中断后重试成功）")
+        else:
+            print("[WARN] 清空 boot.py 失败，板子可能未连接")
 
     print(f"\n[RUN] 运行 {target} (Ctrl+C 终止) ...")
     print("-" * 40)
+    cmd = [
+        sys.executable, "-m", "mpremote", "connect", f"port:{port}",
+        "resume", "run", str(target),
+    ]
     try:
-        subprocess.run(
-            [sys.executable, "-m", "mpremote", "resume",
-             "run", str(target)],
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode == 0:
+            if r.stdout:
+                print(r.stdout, end="")
+            return
+
+        error_text = (r.stdout or "") + "\n" + (r.stderr or "")
+        transient_error = (
+            "ClearCommError" in error_text
+            or "PermissionError" in error_text
+            or "拒绝访问" in error_text
+            or "failed to access" in error_text
+            or "no device found" in error_text
         )
+        raw_repl_error = "could not enter raw repl" in error_text
+
+        if transient_error or raw_repl_error:
+            serial_interrupt(port)
+            print("[WARN] 串口瞬时占用，1 秒后自动重试一次 ...")
+            time.sleep(1)
+            r2 = subprocess.run(cmd, capture_output=True, text=True)
+            if r2.returncode != 0:
+                fallback_cmd = [
+                    sys.executable, "-m", "mpremote", "connect", f"port:{port}",
+                    "run", str(target),
+                ]
+                r2 = subprocess.run(fallback_cmd, capture_output=True, text=True)
+            if r2.stdout:
+                print(r2.stdout, end="")
+            if r2.returncode != 0 and r2.stderr:
+                print(r2.stderr, end="")
+            return
+
+        if r.stderr:
+            print(r.stderr, end="")
     except KeyboardInterrupt:
         print("\n[STOP] 用户中断运行")
 

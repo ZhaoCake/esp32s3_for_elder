@@ -23,7 +23,6 @@ def load_config():
 
 def unlock(cfg):
     port = cfg["device"]["port"]
-    chip = cfg["device"]["chip"]
     clear_cmd = "with open('boot.py','w') as f: f.write('')"
 
     print("[1/2] 清空 boot.py (禁止自启动) ...")
@@ -31,14 +30,14 @@ def unlock(cfg):
     # 优先使用 mpremote resume（不触发软重启，可直接中断运行程序）
     try:
         r = subprocess.run(
-            [sys.executable, "-m", "mpremote", "resume", "exec", clear_cmd],
+            [sys.executable, "-m", "mpremote", "connect", f"port:{port}", "resume", "exec", clear_cmd],
             capture_output=True, text=True, timeout=10,
         )
         if r.returncode == 0:
             print("[OK] boot.py 已清空")
             print("[2/2] 软重启板子 ...")
             subprocess.run(
-                [sys.executable, "-m", "mpremote", "resume", "soft-reset"],
+                [sys.executable, "-m", "mpremote", "connect", f"port:{port}", "resume", "soft-reset"],
                 capture_output=True, text=True, timeout=10,
             )
             print("\n[OK] 已恢复开发模式，可以放心测试代码了。")
@@ -54,7 +53,7 @@ def unlock(cfg):
         time.sleep(2)
         try:
             subprocess.run(
-                [sys.executable, "-m", "mpremote", "resume", "soft-reset"],
+                [sys.executable, "-m", "mpremote", "connect", f"port:{port}", "resume", "soft-reset"],
                 capture_output=True, text=True, timeout=10,
             )
         except subprocess.TimeoutExpired:
@@ -81,13 +80,13 @@ def unlock(cfg):
     for attempt in range(3):
         try:
             r = subprocess.run(
-                [sys.executable, "-m", "mpremote", "resume", "exec", clear_cmd],
+                [sys.executable, "-m", "mpremote", "connect", f"port:{port}", "resume", "exec", clear_cmd],
                 capture_output=True, text=True, timeout=10,
             )
             if r.returncode == 0:
                 print(f"[OK] 第 {attempt+1} 次尝试成功！")
                 subprocess.run(
-                    [sys.executable, "-m", "mpremote", "resume", "soft-reset"],
+                    [sys.executable, "-m", "mpremote", "connect", f"port:{port}", "resume", "soft-reset"],
                     capture_output=True, text=True, timeout=10,
                 )
                 print("\n[OK] 已恢复开发模式。")

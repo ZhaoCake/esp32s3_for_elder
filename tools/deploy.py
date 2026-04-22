@@ -23,7 +23,7 @@ def mpremote_exec(port: str, command: str, timeout: int = 10) -> bool:
     """执行 mpremote resume exec 命令"""
     try:
         r = subprocess.run(
-            [sys.executable, "-m", "mpremote", "resume",
+            [sys.executable, "-m", "mpremote", "connect", f"port:{port}", "resume",
              "exec", command],
             capture_output=True, text=True, timeout=timeout,
         )
@@ -56,7 +56,7 @@ def deploy(cfg, filepath: str):
     print(f"[2/4] 上传 {target.name} ...")
     try:
         r = subprocess.run(
-            [sys.executable, "-m", "mpremote", "resume",
+            [sys.executable, "-m", "mpremote", "connect", f"port:{port}", "resume",
              "cp", str(target), f":{target.name}"],
             capture_output=True, text=True, timeout=15,
         )
@@ -81,7 +81,7 @@ def deploy(cfg, filepath: str):
     print("[4/4] 软重启验证自启动 ...")
     try:
         subprocess.run(
-            [sys.executable, "-m", "mpremote", "resume",
+            [sys.executable, "-m", "mpremote", "connect", f"port:{port}", "resume",
              "soft-reset"],
             capture_output=True, text=True, timeout=10,
         )

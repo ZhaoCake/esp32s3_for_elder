@@ -1,0 +1,5 @@
+mpremote: no device found
+[WARN] 清空 boot.py 失败，板子可能未连接
+
+[RUN] 运行 src\main.py (Ctrl+C 终止) ...
+----------------------------------------

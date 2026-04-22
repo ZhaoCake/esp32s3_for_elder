@@ -20,7 +20,7 @@ def load_config():
 
 def upload(cfg, args: list[str]):
     port = cfg["device"]["port"]
-    cmd = [sys.executable, "-m", "mpremote", "resume", "cp"]
+    cmd = [sys.executable, "-m", "mpremote", "connect", f"port:{port}", "resume", "cp"]
     cmd.extend(args)
     print(f"[UPLOAD] {' '.join(args)}")
     r = subprocess.run(cmd)

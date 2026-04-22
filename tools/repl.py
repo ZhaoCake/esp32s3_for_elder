@@ -20,7 +20,7 @@ def repl(cfg):
     print(f"[REPL] 连接 {port}，按 Ctrl+] 退出 ...")
     print("-" * 40)
     subprocess.run(
-        [sys.executable, "-m", "mpremote", "resume", "repl"],
+        [sys.executable, "-m", "mpremote", "connect", f"port:{port}", "resume", "repl"],
     )
 
 

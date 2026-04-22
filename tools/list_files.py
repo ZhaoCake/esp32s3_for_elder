@@ -19,7 +19,7 @@ def load_config():
 def list_files(cfg, directory: str = ":"):
     port = cfg["device"]["port"]
     r = subprocess.run(
-        [sys.executable, "-m", "mpremote", "resume", "ls", directory],
+        [sys.executable, "-m", "mpremote", "connect", f"port:{port}", "resume", "ls", directory],
     )
     if r.returncode != 0:
         print("[ERROR] 列出文件失败，板子可能未连接")
