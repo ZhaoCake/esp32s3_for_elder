@@ -1,0 +1,12 @@
+[device]
+port = "COM6"
+chip = "esp32s3"
+
+[firmware]
+path = "firmware/ESP32_GENERIC_S3-20260406-v1.28.0.bin"
+flash_address = "0x0"
+baud_rate = 460800
+
+[project]
+source_dir = "src"
+main_file = "main.py"
