@@ -4,8 +4,10 @@
 导致程序重新运行。mpremote resume 不触发软重启，可直接中断程序
 并执行命令。
 
-此模块提供 serial_interrupt 作为兜底手段（当 resume 也失败时）
-以及 serial_exec 用于极端场景。
+此模块提供:
+- serial_interrupt: 兜底中断手段（当 resume 也失败时）
+- serial_exec: 通过 raw serial 执行命令（极端场景）
+- mpremote_eval: 通过 mpremote resume eval 远程求值，返回 (成功, 输出)
 """
 import time
 import serial
@@ -95,3 +97,26 @@ def serial_exec(port: str, command: str, baud: int = 115200, timeout: float = 10
 
     except (serial.SerialException, Exception) as e:
         return False, str(e)
+
+
+def mpremote_eval(port: str, expr: str, timeout: int = 10) -> tuple[bool, str]:
+    """通过 mpremote resume eval 远程求值 MicroPython 表达式。
+
+    mpremote eval 会自动将表达式包裹在 print(repr(...)) 中，
+    因此 stdout 会包含表达式的 repr() 输出。
+
+    返回 (success, output)，其中 output 是求值结果或错误信息。
+    """
+    import subprocess
+    import sys
+    try:
+        r = subprocess.run(
+            [sys.executable, "-m", "mpremote", "connect", f"port:{port}",
+             "resume", "eval", expr],
+            capture_output=True, text=True, timeout=timeout,
+        )
+        if r.returncode == 0:
+            return True, r.stdout.strip()
+        return False, (r.stderr or r.stdout or "unknown error").strip()
+    except subprocess.TimeoutExpired:
+        return False, "timeout"
